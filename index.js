@@ -3,6 +3,8 @@ const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
+
+
 const stripe = require('stripe')(process.env.STRIPE_SECRETE_KEY);
 const port = process.env.PORT || 5000;
 
@@ -70,7 +72,7 @@ async function run() {
       next()
     }
 
-    
+
 
 
 
@@ -88,120 +90,129 @@ async function run() {
     });
 
     app.get('/districts', async (req, res) => {
-        const result = await districtsCollection.find().toArray()
-        res.send(result);
-      })
+      const result = await districtsCollection.find().toArray()
+      res.send(result);
+    })
     app.get('/upazilas', async (req, res) => {
-        const result = await upazilasCollection.find().toArray()
-        res.send(result);
-      })
+      const result = await upazilasCollection.find().toArray()
+      res.send(result);
+    })
 
+
+
+    // admin related api
+    app.get('/users/admin/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email }
+      const user = await userCollection.findOne(query)
+      let admin = false;
+      if (user) {
+        admin = user?.role === 'admin'
+      }
+      res.send({ admin })
+    })
+
+
+
+
+    // get donation request by email
+    app.get('/donationRequests', async (req, res) => {
+      const email = req.query.email;
+      const query = { reqEmail: email };
+      const result = await donationRequestCollection.find(query).toArray();
+      res.send(result);
+    });
+
+
+    //ALL Donation Request
+    app.get('/AlldonationRequests', async (req, res) => {
+      const result = await donationRequestCollection.find().toArray();
+      res.send(result);
+    });
+
+
+    app.get('/donationRequests/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await donationRequestCollection.findOne(query);
+      res.send(result);
+    })
+
+    app.patch('/donationRequests/:id', async (req, res) => {
+      const info = req.body;
+      console.log(info)
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          reqName: info.reqName,
+          reqEmail: info.reqEmail,
+          reciName: info.reciName,
+          bloodGroup: info.bloodGroup,
+          reciDistrict: info.reciDistrict,
+          reciUpazila: info.reciUpazila,
+          hospitalName: info.hospitalName,
+          fullAddress: info.fullAddress,
+          donationDate: info.donationDate,
+          donationTime: info.donationTime,
+          requestMessage: info.requestMessage,
+          donationStatus: info.donationStatus,
+
+
+        }
+      }
+      const result = await donationRequestCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+    })
+
+    app.delete('/donationRequest/:id', async (req, res) => {
+      const id = req.params.id;
+      console.log(id)
+      const query = { _id: new ObjectId(id) }
+      const result = await donationRequestCollection.deleteOne(query);
+      res.send(result);
+    })
+
+    // CONFIRM DONATION UPDATE
     
 
-          // admin related api
-    app.get('/users/admin/:email', async (req, res) => {
-        const email = req.params.email;
-        const query = { email: email }
-        const user = await userCollection.findOne(query)
-        let admin = false;
-        if (user) {
-          admin = user?.role === 'admin'
-        }
-        res.send({ admin })
-      })
-
-
-
-
-          // get request
-          app.get('/donationRequests', async (req, res) => {
-            const email = req.query.email;
-            const query = { reqEmail: email };
-            const result = await donationRequestCollection.find(query).toArray();
-            res.send(result);
-          });
-
-
-          app.get('/donationRequests/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
-            const result = await donationRequestCollection.findOne(query);
-            res.send(result);
-          })
-
-          app.patch('/donationRequests/:id', async (req, res) => {
-            const info = req.body;
-            console.log(info)
-            const id = req.params.id;
-            const filter = { _id: new ObjectId(id) }
-            const updatedDoc = {
-              $set: {
-                reqName: info.reqName,
-                reqEmail: info.reqEmail,
-                reciName: info.reciName,
-                bloodGroup: info.bloodGroup,
-                reciDistrict: info.reciDistrict,
-                reciUpazila: info.reciUpazila,
-                hospitalName: info.hospitalName,
-                fullAddress: info.fullAddress,
-                donationDate: info.donationDate,
-                donationTime: info.donationTime,
-                requestMessage: info.requestMessage,
-                donationStatus:info.donationStatus,
-                
-              
-              }
-            }
+    app.patch('/confirmDonation/:id', async (req, res) => {
       
-            const result = await donationRequestCollection.updateOne(filter, updatedDoc)
-            res.send(result);
-          })
+        const info = req.body;
+        console.log(info);
+    
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        console.log(filter);
+    
+        const updatedDoc = {
+          $set: {
+            donationStatus: info.donationStatus,
+          },
+        };
+    
+        const result = await donationRequestCollection.updateOne(filter, updatedDoc);
+      res.send(result)
+        
+     
+    });
+    
+
+
+    //CREATE DONATION REQUEST POST
+    app.post('/donationRequest', async (req, res) => {
+      const request = req.body;
+      const result = await donationRequestCollection.insertOne(request)
+      res.send(result)
+    })
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      //CREATE DONATION REQUEST POST
-      app.post('/donationRequest',async(req,res)=>{
-        const request=req.body;
-        const result = await donationRequestCollection.insertOne(request)
-        res.send(result)
-      })
-
-
-
- 
-
-
-
-
-
-
- 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
-   
+
   }
 }
 run().catch(console.dir);
