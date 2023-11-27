@@ -131,14 +131,24 @@ async function run() {
 
           app.patch('/donationRequests/:id', async (req, res) => {
             const info = req.body;
+            console.log(info)
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
             const updatedDoc = {
               $set: {
-                name: info.name,
-                category: item.category,
-                price: info.price,
-                recipe: info.recipe,
+                reqName: info.reqName,
+                reqEmail: info.reqEmail,
+                reciName: info.reciName,
+                bloodGroup: info.bloodGroup,
+                reciDistrict: info.reciDistrict,
+                reciUpazila: info.reciUpazila,
+                hospitalName: info.hospitalName,
+                fullAddress: info.fullAddress,
+                donationDate: info.donationDate,
+                donationTime: info.donationTime,
+                requestMessage: info.requestMessage,
+                donationStatus:info.donationStatus,
+                
               
               }
             }
