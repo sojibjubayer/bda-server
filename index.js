@@ -148,6 +148,20 @@ async function run() {
       res.send(result);
     })
 
+    //BLOG POST
+    app.post('/blogPost', async (req, res) => {
+      const blog = req.body;
+      const result = await blogsCollection.insertOne(blog);
+      res.send(result);
+    });
+    // GET BLOGS
+    app.get('/blogs',async(req,res)=>{
+      const users = await blogsCollection.find().toArray()
+      res.send(users)
+
+    })
+
+
 
 
 
