@@ -160,6 +160,27 @@ async function run() {
       res.send(users)
 
     })
+    //DELETE BLOG
+    app.delete('/deleteBlog/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await blogsCollection.deleteOne(query);
+      res.send(result);
+    })
+    //BLOG PUBLSIH
+    app.patch('/publishPost/:id', async (req, res) => {
+      const info = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: info.status,
+        },
+      };
+      const result = await blogsCollection.updateOne(filter, updatedDoc);
+    res.send(result)
+  });
+
 
 
 
@@ -215,8 +236,6 @@ async function run() {
   
       const result = await userCollection.updateOne(filter, updatedDoc);
     res.send(result)
-      
-   
   });
 
 
