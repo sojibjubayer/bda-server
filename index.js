@@ -74,21 +74,24 @@ async function run() {
     }
 
 
-
-
-
-
-
     //collecting data from db to update
     app.get('/users', async (req, res) => {
       const result = await userCollection.find().toArray()
       res.send(result);
     })
+
     app.post('/users', async (req, res) => {
       const user = req.body;
+
+      // Check if the user with the given email already exists
+      const existingUser = await userCollection.findOne({ email: user.email });
+      if (existingUser) {
+        return res.status(400).json({ error: 'User with this email already exists' });
+      }
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+
 
     app.get('/districts', async (req, res) => {
       const result = await districtsCollection.find().toArray()
@@ -99,6 +102,18 @@ async function run() {
       res.send(result);
     })
 
+
+    //volunteer related api
+    app.get('/users/volunteer/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email }
+      const user = await userCollection.findOne(query)
+      let volunteer = false;
+      if (user) {
+        volunteer = user?.role === 'volunteer'
+      }
+      res.send({ volunteer })
+    })
 
 
     // admin related api
@@ -116,7 +131,7 @@ async function run() {
     app.get('/admin-stats', async (req, res) => {
       const users = await userCollection.estimatedDocumentCount()
       const totalRequest = await donationRequestCollection.estimatedDocumentCount()
-    
+
 
       // const result = await paymentCollection.aggregate([
       //   {
@@ -135,12 +150,14 @@ async function run() {
     })
 
     //Getting ALL USEr
-    app.get('/allUsers',async(req,res)=>{
+    app.get('/allUsers', async (req, res) => {
       const users = await userCollection.find().toArray()
       res.send(users)
 
     })
+
   
+
     app.get('/allUsers/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
@@ -155,7 +172,7 @@ async function run() {
       res.send(result);
     });
     // GET BLOGS
-    app.get('/blogs',async(req,res)=>{
+    app.get('/blogs', async (req, res) => {
       const users = await blogsCollection.find().toArray()
       res.send(users)
 
@@ -178,8 +195,8 @@ async function run() {
         },
       };
       const result = await blogsCollection.updateOne(filter, updatedDoc);
-    res.send(result)
-  });
+      res.send(result)
+    });
 
 
 
@@ -188,55 +205,67 @@ async function run() {
 
 
 
-// STATUS CHANGE
+    // STATUS CHANGE
     app.patch('/makeAdmin/:id', async (req, res) => {
       const info = req.body;
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      console.log(filter);
       const updatedDoc = {
         $set: {
           role: info.role,
         },
       };
-  
+
       const result = await userCollection.updateOne(filter, updatedDoc);
-    res.send(result)
-      
-   
-  });
+      res.send(result)
+
+
+    });
     app.patch('/makeVolunteer/:id', async (req, res) => {
       const info = req.body;
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      console.log(filter);
       const updatedDoc = {
         $set: {
           role: info.role,
         },
       };
-  
+
       const result = await userCollection.updateOne(filter, updatedDoc);
-    res.send(result)
-      
-   
-  });
+      res.send(result)
+
+
+    });
 
     app.patch('/activeBlock/:id', async (req, res) => {
       const info = req.body;
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      console.log(filter);
-  
+
       const updatedDoc = {
         $set: {
           status: info.status,
         },
       };
-  
+
       const result = await userCollection.updateOne(filter, updatedDoc);
-    res.send(result)
-  });
+      res.send(result)
+    });
+
+    app.patch('/doneCancel/:id', async (req, res) => {
+      const info = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+
+      const updatedDoc = {
+        $set: {
+          donationStatus: info.status,
+        },
+      };
+
+      const result = await donationRequestCollection.updateOne(filter, updatedDoc);
+      res.send(result)
+    });
 
 
 
@@ -268,31 +297,28 @@ async function run() {
       const result = await donationRequestCollection.findOne(query);
       res.send(result);
     })
-        //UPDATE PROFILE
-        app.patch('/updateProfile/:id', async (req, res) => {
-          const info = req.body;
-          console.log(info)
-          const id = req.params.id;
-          const filter = { _id: new ObjectId(id) }
-          console.log(filter)
-          const updatedDoc = {
-            $set: {
-              name: info.name,
-              email: info.email,
-              bloodGroup: info.bloodGroup,
-              district: info.district,
-              upazila: info.upazila,
-              image: info.image,
-    
-            }
-          }
-          const result = await userCollection.updateOne(filter, updatedDoc)
-          res.send(result);
-        })
+    //UPDATE PROFILE
+    app.patch('/updateProfile/:id', async (req, res) => {
+      const info = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          name: info.name,
+          email: info.email,
+          bloodGroup: info.bloodGroup,
+          district: info.district,
+          upazila: info.upazila,
+          image: info.image,
+
+        }
+      }
+      const result = await userCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+    })
 
     app.patch('/donationRequests/:id', async (req, res) => {
       const info = req.body;
-      console.log(info)
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const updatedDoc = {
@@ -323,36 +349,35 @@ async function run() {
 
     app.delete('/donationRequest/:id', async (req, res) => {
       const id = req.params.id;
-      console.log(id)
       const query = { _id: new ObjectId(id) }
       const result = await donationRequestCollection.deleteOne(query);
       res.send(result);
     })
 
     // CONFIRM DONATION UPDATE
-    
+
 
     app.patch('/confirmDonation/:id', async (req, res) => {
-      
-        const info = req.body;
-        console.log(info);
-    
-        const id = req.params.id;
-        const filter = { _id: new ObjectId(id) };
-        console.log(filter);
-    
-        const updatedDoc = {
-          $set: {
-            donationStatus: info.donationStatus,
-          },
-        };
-    
-        const result = await donationRequestCollection.updateOne(filter, updatedDoc);
+
+      const info = req.body;
+
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+
+      const updatedDoc = {
+        $set: {
+          donationStatus: info.donationStatus,
+          donorEmail:info.donorEmail,
+          donorName:info.donorName,
+        },
+      };
+
+      const result = await donationRequestCollection.updateOne(filter, updatedDoc);
       res.send(result)
-        
-     
+
+
     });
-    
+
 
 
     //CREATE DONATION REQUEST POST
