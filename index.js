@@ -46,9 +46,10 @@ async function run() {
       res.send({ token })
     })
 
-    // middlewares
-    const verifyToken = (req, res, next) => {
-      console.log('inside verify token', req.headers.authorization)
+ 
+     // middlewares
+     const verifyToken = (req, res, next) => {
+      // console.log('inside verify token', req.headers.authorization)
       if (!req.headers.authorization) {
         return res.status(401).send({ message: 'unauthorized access' })
       }
@@ -61,20 +62,8 @@ async function run() {
         next()
       })
     }
-    // verify admin after verifyToken
-    const verifyAdmin = async (req, res, next) => {
-      const email = req.decoded.email;
-      const query = { email: email }
-      const user = await userCollection.findOne(query)
-      const isAdmin = user?.role === 'admin'
-      if (!isAdmin) {
-        return res.status(403).send({ message: 'forbidden  access' })
-      }
-      next()
-    }
-
-
-    //collecting data from db to update
+  
+    
     app.get('/users', async (req, res) => {
       const result = await userCollection.find().toArray()
       res.send(result);
@@ -131,26 +120,11 @@ async function run() {
     app.get('/admin-stats', async (req, res) => {
       const users = await userCollection.estimatedDocumentCount()
       const totalRequest = await donationRequestCollection.estimatedDocumentCount()
-
-
-      // const result = await paymentCollection.aggregate([
-      //   {
-      //     $group:{
-      //       _id:null,
-      //       totalRevenue:{
-      //         $sum:'$price'
-      //     }
-      //     }
-      //   }
-      // ]).toArray()
-      // const revenue=result.length>0? result[0].totalRevenue : 0;
-
-
       res.send({ users, totalRequest })
     })
 
     //Getting ALL USEr
-    app.get('/allUsers', async (req, res) => {
+    app.get('/allUsers',verifyToken, async (req, res) => {
       const users = await userCollection.find().toArray()
       res.send(users)
 
@@ -178,7 +152,7 @@ async function run() {
 
     })
     //DELETE BLOG
-    app.delete('/deleteBlog/:id', async (req, res) => {
+    app.delete('/deleteBlog/:id',verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await blogsCollection.deleteOne(query);
@@ -197,11 +171,6 @@ async function run() {
       const result = await blogsCollection.updateOne(filter, updatedDoc);
       res.send(result)
     });
-
-
-
-
-
 
 
 
@@ -268,13 +237,6 @@ async function run() {
     });
 
 
-
-
-
-
-
-
-
     // get donation request by email
     app.get('/donationRequests', async (req, res) => {
       const email = req.query.email;
@@ -317,7 +279,7 @@ async function run() {
       res.send(result);
     })
 
-    app.patch('/donationRequests/:id', async (req, res) => {
+    app.patch('/editDonationRequests/:id',verifyToken, async (req, res) => {
       const info = req.body;
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
@@ -344,10 +306,7 @@ async function run() {
     })
 
 
-
-
-
-    app.delete('/donationRequest/:id', async (req, res) => {
+    app.delete('/donationRequest/:id',verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await donationRequestCollection.deleteOne(query);
@@ -377,8 +336,6 @@ async function run() {
 
 
     });
-
-
 
     //CREATE DONATION REQUEST POST
     app.post('/donationRequest', async (req, res) => {
